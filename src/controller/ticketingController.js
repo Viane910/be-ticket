@@ -1,20 +1,19 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { sendEmail } = require("../utils/sendEmail");
-const { response } = require("express");
+const { validationResult } = require("express-validator");
 
 // =========================
 // CREATE TICKET
 // =========================
 exports.postTicketing = async (req, res) => {
   try {
-    const { name, email, message, categoryId } = req.body;
-
-    if (!categoryId) {
-      return res.status(400).json({
-        message: "Kategori wajib dipilih",
-      });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
+
+    const { name, email, message, categoryId } = req.body;
 
     const createdTicketing = await prisma.ticket.create({
       data: {
@@ -72,13 +71,18 @@ exports.getTicketing = async (req, res) => {
 // =========================
 exports.assignTicket = async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     const { id } = req.params;
     const { assignedToId } = req.body;
 
     const updated = await prisma.ticket.update({
       where: { id: Number(id) },
       data: {
-        assignedToId: assignedToId ? Number(assignedToId) : null,
+        assignedToId: Number(assignedToId),
         status: "Diproses", // ✅ TAMBAH INI
       },
     });
@@ -95,12 +99,13 @@ exports.assignTicket = async (req, res) => {
 // =========================
 exports.updateCategoryTicket = async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     const { id } = req.params;
     const { categoryId } = req.body;
-
-    if (!categoryId) {
-      return res.status(400).json({ message: "Category wajib diisi" });
-    }
 
     const updated = await prisma.ticket.update({
       where: { id: Number(id) },
@@ -139,16 +144,13 @@ exports.getCategories = async (req, res) => {
 // =========================
 exports.updateStatusTicket = async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     const { id } = req.params;
     const { status } = req.body;
-
-    const VALID_STATUS = ["Belum Dikelola", "Diproses", "Sudah Dijawab"];
-
-    if (!status || !VALID_STATUS.includes(status)) {
-      return res.status(400).json({
-        message: `Status tidak valid. Gunakan: ${VALID_STATUS.join(" | ")}`,
-      });
-    }
 
     const updated = await prisma.ticket.update({
       where: { id: Number(id) },
@@ -157,7 +159,6 @@ exports.updateStatusTicket = async (req, res) => {
 
     res.json({ data: updated, message: "Status berhasil diupdate" });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -169,13 +170,6 @@ exports.updateStatusTicket = async (req, res) => {
 exports.deleteTicket = async (req, res) => {
   try {
     const { id } = req.params;
-
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "ID ticket wajib diisi",
-      });
-    }
 
     const ticket = await prisma.ticket.findUnique({
       where: { id: Number(id) },
@@ -210,34 +204,40 @@ exports.deleteTicket = async (req, res) => {
 // RESPOND TICKETING
 // =========================
 exports.respondTicket = async (req, res) => {
-  const { id } = req.params;
-  const { response } = req.body;
-  const userId = req.user.id;
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-  const ticket = await prisma.ticket.findUnique({
-    where: { id: Number(id) },
-  });
+    const { id } = req.params;
+    const { response } = req.body;
+    const userId = req.user.id;
 
-  if (!ticket || ticket.assignedToId !== userId) {
-    return res.status(403).json({
-      message: "Tidak punya akses ke ticket ini",
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: Number(id) },
     });
-  }
 
-  const updated = await prisma.ticket.update({
-    where: { id: Number(id) },
-    data: {
-      response,
-      answeredAt: new Date(),
-      answeredById: userId,
-      status: "Sudah Dijawab",
-    },
-  });
+    if (!ticket || ticket.assignedToId !== userId) {
+      return res.status(403).json({
+        message: "Tidak punya akses ke ticket ini",
+      });
+    }
 
-  await sendEmail(
-    ticket.email,
-    "Halo, Terimakasih telah Menghubungi Layanan Ticketing BP2TL Jakarta. Ini adalah Jawaban Ticket Anda",
-    `
+    const updated = await prisma.ticket.update({
+      where: { id: Number(id) },
+      data: {
+        response,
+        answeredAt: new Date(),
+        answeredById: userId,
+        status: "Sudah Dijawab",
+      },
+    });
+
+    await sendEmail(
+      ticket.email,
+      "Halo, Terimakasih telah Menghubungi Layanan Ticketing BP2TL Jakarta. Ini adalah Jawaban Ticket Anda",
+      `
   <div style="font-family:sans-serif">
     <h2>Halo ${ticket.name} 👋</h2>
 
@@ -253,7 +253,10 @@ exports.respondTicket = async (req, res) => {
     <p>Terima kasih 🙏</p>
   </div>
   `,
-  );
+    );
 
-  res.json({ data: updated });
+    res.json({ data: updated });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
