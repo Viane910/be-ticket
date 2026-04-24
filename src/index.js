@@ -1,30 +1,30 @@
 const express = require("express");
 const dotenv = require("dotenv");
-const { PrismaClient } = require("@prisma/client");
 const cors = require("cors");
+const { PrismaClient } = require("@prisma/client");
+
 const userRoutes = require("./routes/userRoutes.js");
 const ticketingRoutes = require("./routes/ticketingRoutes.js");
 const uploadRoutes = require("./routes/uploadRoutes.js");
 
-const prisma = new PrismaClient();
+dotenv.config();
+
+let prisma;
+if (!global.prisma) {
+  global.prisma = new PrismaClient();
+}
+prisma = global.prisma;
 
 const app = express();
-app.use(express.json());
-app.use(
-  cors({
-    origin: "*",
-  }),
-);
 
-dotenv.config();
-const PORT = process.env.PORT || 3000;
+app.use(express.json());
+app.use(cors({ origin: "*" }));
 
 app.get("/", (req, res) => {
-  res.send("Made by Love from Dwi Oktaviane");
+  res.send("API jalan 🚀");
 });
 
 app.use("/uploads", express.static("uploads"));
-
 app.use("/", userRoutes);
 app.use("/", ticketingRoutes);
 app.use("/", uploadRoutes);
