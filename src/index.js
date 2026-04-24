@@ -21,7 +21,7 @@ app.use(express.json());
 app.use(cors({ origin: "*" }));
 
 app.get("/", (req, res) => {
-  res.send("API jalan 🚀");
+  res.send("Made with ❤️ by Dwi Oktaviane");
 });
 
 app.use("/uploads", express.static("uploads"));
