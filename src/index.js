@@ -1,6 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const path = require("path");
 const { PrismaClient } = require("@prisma/client");
 
 const userRoutes = require("./routes/userRoutes.js");
@@ -24,7 +25,8 @@ app.get("/", (req, res) => {
   res.send("Made with ❤️ by Dwi Oktaviane");
 });
 
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// app.use("/uploads", express.static("uploads"));
 app.use("/", userRoutes);
 app.use("/", ticketingRoutes);
 app.use("/", uploadRoutes);

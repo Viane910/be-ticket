@@ -18,5 +18,12 @@ router.get("/files/latest", sendFile);
 router.put("/file/:id", editFile);
 router.delete("/file/:id", deleteFile);
 router.put("/files/:id/active", setActiveFile);
+router.get("/file/:filename", (req, res) => {
+  const path = require("path");
+
+  const filePath = path.join(process.cwd(), "uploads", req.params.filename);
+
+  res.sendFile(filePath);
+});
 
 module.exports = router;
