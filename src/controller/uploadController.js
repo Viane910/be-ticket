@@ -1,5 +1,5 @@
+const supabase = require("../supabase");
 const prisma = require("../model/prisma");
-const fs = require("fs");
 const path = require("path");
 
 // 📁 Upload File
@@ -13,6 +13,24 @@ exports.uploadFile = async (req, res) => {
       });
     }
 
+    const fileName = Date.now() + "_" + file.originalname;
+
+    // 🔥 upload ke supabase storage
+    const { data, error } = await supabase.storage
+      .from("files") // nama bucket
+      .upload(fileName, file.buffer, {
+        contentType: file.mimetype,
+      });
+
+    if (error) throw error;
+
+    // 🔥 ambil public URL
+    const { data: publicData } = supabase.storage
+      .from("files")
+      .getPublicUrl(fileName);
+
+    const publicUrl = publicData.publicUrl;
+
     // 🔥 matikan semua dulu
     await prisma.fileUpload.updateMany({
       data: { isActive: false },
@@ -20,9 +38,9 @@ exports.uploadFile = async (req, res) => {
 
     const saved = await prisma.fileUpload.create({
       data: {
-        filename: file.filename,
-        filepath: file.path.replace(/\\/g, "/"), // 🔥 fix path
-        isActive: true, // 🔥 langsung aktif
+        filename: fileName,
+        filepath: publicUrl,
+        isActive: true,
       },
     });
 
@@ -31,6 +49,7 @@ exports.uploadFile = async (req, res) => {
       data: saved,
     });
   } catch (error) {
+    console.error("UPLOAD ERROR:", error);
     res.status(500).json({
       message: error.message,
     });
@@ -91,12 +110,15 @@ exports.deleteFile = async (req, res) => {
       return res.status(404).json({ message: "File tidak ditemukan" });
     }
 
-    const filePath = path.join(process.cwd(), file.filepath);
+    // 🔥 ambil nama file dari URL
+    const fileName = file.filename;
 
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
+    // 🔥 hapus dari Supabase
+    const { error } = await supabase.storage.from("files").remove([fileName]);
 
+    if (error) throw error;
+
+    // 🔥 hapus dari DB
     await prisma.fileUpload.delete({
       where: { id: Number(fileId) },
     });
@@ -105,6 +127,7 @@ exports.deleteFile = async (req, res) => {
       message: "File deleted",
     });
   } catch (error) {
+    console.error("DELETE ERROR:", error);
     res.status(500).json({
       message: error.message,
     });
