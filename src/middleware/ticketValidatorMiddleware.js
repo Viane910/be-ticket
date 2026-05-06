@@ -1,6 +1,7 @@
 const { VALID_STATUS } = require("../status/ticketStatus");
 const { body, param } = require("express-validator");
 
+// Create Ticket Validator
 exports.createTicketValidator = [
   body("name").trim().notEmpty().withMessage("Nama wajib diisi"),
 
@@ -15,6 +16,17 @@ exports.createTicketValidator = [
     .withMessage("Kategori harus berupa angka"),
 ];
 
+// CreateAt Validator
+exports.createAtValidator = [
+  param("id").isInt().withMessage("ID harus angka"),
+];
+
+// AnswerAt Validator
+exports.answerAtValidator = [
+  param("id").isInt().withMessage("ID harus angka"),
+];
+
+// Update Status Validator
 exports.updateStatusValidator = [
   body("status")
     .trim()
@@ -24,6 +36,7 @@ exports.updateStatusValidator = [
     .withMessage(`Status harus salah satu dari: ${VALID_STATUS.join(", ")}`),
 ];
 
+// Update Category Validator
 exports.updateCategoryValidator = [
   param("id").isInt().withMessage("ID harus angka"),
   body("categoryId")
@@ -33,11 +46,13 @@ exports.updateCategoryValidator = [
     .withMessage("Kategori harus angka"),
 ];
 
+// Respond Ticket Validator
 exports.respondTicketValidator = [
   param("id").isInt().withMessage("ID harus angka"),
   body("response").trim().notEmpty().withMessage("Response wajib diisi"),
 ];
 
+// Assign Ticket Validator
 exports.assignTicketValidator = [
   param("id").isInt().withMessage("ID harus angka"),
   body("assignedToId")
@@ -47,6 +62,7 @@ exports.assignTicketValidator = [
     .withMessage("assignedTo harus angka"),
 ];
 
+// Delete Ticket Validator
 exports.deleteTicketValidator = [
   param("id").isInt().withMessage("ID harus angka"),
 ];

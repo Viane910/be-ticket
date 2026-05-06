@@ -1,7 +1,7 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { sendEmail } = require("../utils/sendEmail");
-const { validationResult } = require("express-validator");
+const { param, validationResult } = require("express-validator");
 
 // =========================
 // CREATE TICKET
@@ -55,13 +55,50 @@ exports.getTicketing = async (req, res) => {
       response: item.response,
       status: item.status,
       category: item.category.category,
+      createAt: item.createAt,
+      answeredAt: item.answeredAt,
       assignedTo: item.assignedTo?.username || null,
       assignedToId: item.assignedToId,
     }));
 
-    res.json({ data: formatted, message: "Success get ticketing" });
+    res.json({ data: formatted });
   } catch (error) {
-    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// =========================
+// GET TICKET DETAIL
+exports.getTicketDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const data = await prisma.ticket.findUnique({
+      where: { id: Number(id) },
+      include: {
+        category: true,
+        assignedTo: true,
+      },
+    });
+
+    if (!data) {
+      return res.status(404).json({ message: "Data tidak ditemukan" });
+    }
+
+    res.json({
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      message: data.message,
+      response: data.response,
+      status: data.status,
+      category: data.category.category,
+      createAt: data.createAt,
+      answeredAt: data.answeredAt,
+      assignedTo: data.assignedTo?.username || null,
+      assignedToId: data.assignedToId,
+    });
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
@@ -160,6 +197,26 @@ exports.updateStatusTicket = async (req, res) => {
     res.json({ data: updated, message: "Status berhasil diupdate" });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// =========================
+// VALIDATION RESULT HANDLER
+// =========================
+exports.validate = (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        errors: errors.array(),
+      });
+    }
+    next();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
 

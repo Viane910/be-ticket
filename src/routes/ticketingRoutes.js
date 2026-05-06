@@ -5,6 +5,8 @@ const { sendEmail } = require("../utils/sendEmail");
 const {
   createTicketValidator,
   assignTicketValidator,
+  createAtValidator,
+  answerAtValidator,
   updateCategoryValidator,
   updateStatusValidator,
   respondTicketValidator,
@@ -14,6 +16,7 @@ const {
 const {
   postTicketing,
   getTicketing,
+  getTicketDetail,
   assignTicket,
   updateCategoryTicket,
   getCategories,
@@ -25,6 +28,9 @@ const {
 // TICKETING USER
 router.get("/ticketing", getTicketing);
 router.post("/ticketing", createTicketValidator, postTicketing);
+
+// DETAIL
+router.get("/ticketing/:id", deleteTicketValidator, getTicketDetail);
 
 // TICKETING ASSIGN
 router.patch("/ticketing/:id/assign", assignTicketValidator, assignTicket);
@@ -38,6 +44,13 @@ router.patch(
   updateStatusValidator,
   updateStatusTicket,
 );
+
+//TICKETING CREATE AT & ANSWER AT
+router.get("/ticketing", getTicketing);
+router.post("/ticketing", createTicketValidator, postTicketing);
+
+// DETAIL (optional kalau mau ambil 1 data)
+router.get("/ticketing/:id", deleteTicketValidator, getTicketDetail);
 
 // TICKETING CATEGORY
 router.get("/categories", getCategories);
